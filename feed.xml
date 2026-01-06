@@ -13,3 +13,32 @@
 <lastBuildDate>Sat, 03 Jan 2026 12:00:00 GMT</lastBuildDate>
 <atom:link href="https://bspfi.github.io/feed.xml" rel="self" type="application/rss+xml"/>
 <language><![CDATA[ en ]]></language>
+<item>
+<title><![CDATA[ Post 1 ]]></title>
+<description><![CDATA[ <div><img src="https://bspfi.github.io/img/post1.png" style="width: 100%;" /><div>This is post 1.</div></div> ]]></description>
+<link>https://bspfi.github.io/post-1</link>
+<guid isPermaLink="false">f25b7509f0fa6f5edc7cc45365b3e28a</guid>
+<dc:creator><![CDATA[ bspfi.github.io ]]></dc:creator>
+<pubDate>Thu, 01 Jan 2026 12:00:00 GMT</pubDate>
+<media:content medium="image" url="https://bspfi.github.io/img/post1.png"/>
+</item>
+<item>
+<title><![CDATA[ Post 2 ]]></title>
+<description><![CDATA[ <div><img src="https://bspfi.github.io/img/post2.png" style="width: 100%;" /><div>This is post 2.</div></div> ]]></description>
+<link>https://bspfi.github.io/post-2</link>
+<guid isPermaLink="false">fbc9f0e489bb7da69aabe8e5859f3d7e</guid>
+<dc:creator><![CDATA[ bspfi.github.io ]]></dc:creator>
+<pubDate>Fri, 02 Jan 2026 12:00:00 GMT</pubDate>
+<media:content medium="image" url="https://bspfi.github.io/img/post2.png"/>
+</item>
+<item>
+<title><![CDATA[ Post 3 ]]></title>
+<description><![CDATA[ <div><img src="https://bspfi.github.io/img/post3.png" style="width: 100%;" /><div>This is post 3.</div></div> ]]></description>
+<link>https://bspfi.github.io/post-3</link>
+<guid isPermaLink="false">e31304154d33211f232817ba2161317e</guid>
+<dc:creator><![CDATA[ bspfi.github.io ]]></dc:creator>
+<pubDate>Sat, 03 Jan 2026 12:00:00 GMT</pubDate>
+<media:content medium="image" url="https://bspfi.github.io/img/post3.png"/>
+</item>
+</channel>
+</rss>

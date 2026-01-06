@@ -72,23 +72,46 @@ printf '<lastBuildDate>%s</lastBuildDate>\n' "$BUILD_DATE"
 printf '<atom:link href="%s" rel="self" type="application/rss+xml"/>\n' "$(printf "%s" "$FEED" | xml_escape)"
 printf '<language>%s</language>\n' "$(printf "%s" "$LANG" | cdata)"
 
-grep -oE '<a class="rss-item"[^>]*>' "$INPUT" | while read -r line; do
-  URL="$(echo "$line" | sed -nE 's/.*href="([^"]+)".*/\1/p')"
-  TITLE_I="$(echo "$line" | sed -nE 's/.*data-title="([^"]+)".*/\1/p')"
-  DATE_I="$(echo "$line" | sed -nE 's/.*data-date="([^"]+)".*/\1/p')"
-  IMG_I="$(echo "$line" | sed -nE 's/.*data-image="([^"]+)".*/\1/p')"
-  SUM_I="$(echo "$line" | sed -nE 's/.*data-summary="([^"]+)".*/\1/p')"
+# Extract RSS items - handle multi-line anchor tags
+awk '
+  /<a class="rss-item"/ {
+    in_item = 1
+    item_content = ""
+  }
+  in_item {
+    item_content = item_content " " $0
+    if (/<\/a>/) {
+      in_item = 0
+      print item_content
+    }
+  }
+' "$INPUT" | while read -r line; do
+  URL="$(echo "$line" | grep -oE 'href="[^"]+"' | sed 's/href="//;s/"//')"
+  TITLE_I="$(echo "$line" | grep -oE 'data-title="[^"]+"' | sed 's/data-title="//;s/"//')"
+  DATE_I="$(echo "$line" | grep -oE 'data-date="[^"]+"' | sed 's/data-date="//;s/"//')"
+  IMG_I="$(echo "$line" | grep -oE 'data-image="[^"]+"' | sed 's/data-image="//;s/"//')"
+  SUM_I="$(echo "$line" | grep -oE 'data-summary="[^"]+"' | sed 's/data-summary="//;s/"//')"
 
-  DESC_HTML="<div><img src=\"$IMG_I\" style=\"width: 100%;\" /><div>$SUM_I</div></div>"
+  # Skip if required fields are missing
+  [ -z "$URL" ] || [ -z "$DATE_I" ] && continue
+
+  # Build description HTML if summary exists
+  if [ -n "$SUM_I" ] && [ -n "$IMG_I" ]; then
+    DESC_HTML="<div><img src=\"$IMG_I\" style=\"width: 100%;\" /><div>$SUM_I</div></div>"
+  elif [ -n "$SUM_I" ]; then
+    DESC_HTML="<div>$SUM_I</div>"
+  else
+    DESC_HTML=""
+  fi
 
   echo '<item>'
-  printf '  <title>%s</title>\n' "$(printf "%s" "$TITLE_I" | cdata)"
-  printf '  <description>%s</description>\n' "$(printf "%s" "$DESC_HTML" | cdata)"
-  printf '  <link>%s</link>\n' "$(printf "%s" "$URL" | xml_escape)"
-  printf '  <guid isPermaLink="false">%s</guid>\n' "$(guid "$URL")"
-  printf '  <dc:creator>%s</dc:creator>\n' "$(printf "%s" "$CREATOR" | cdata)"
-  printf '  <pubDate>%s</pubDate>\n' "$(rfc822 "$DATE_I")"
-  printf '  <media:content medium="image" url="%s"/>\n' "$(printf "%s" "$IMG_I" | xml_escape)"
+  printf '<title>%s</title>\n' "$(printf "%s" "$TITLE_I" | cdata)"
+  [ -n "$DESC_HTML" ] && printf '<description>%s</description>\n' "$(printf "%s" "$DESC_HTML" | cdata)"
+  printf '<link>%s</link>\n' "$(printf "%s" "$URL" | xml_escape)"
+  printf '<guid isPermaLink="false">%s</guid>\n' "$(guid "$URL")"
+  printf '<dc:creator>%s</dc:creator>\n' "$(printf "%s" "$CREATOR" | cdata)"
+  printf '<pubDate>%s</pubDate>\n' "$(rfc822 "$DATE_I")"
+  [ -n "$IMG_I" ] && printf '<media:content medium="image" url="%s"/>\n' "$(printf "%s" "$IMG_I" | xml_escape)"
   echo '</item>'
 done
 
