@@ -10,7 +10,7 @@
   <link>https://bspfi.github.io</link>
 </image>
 <generator>https://rss.app</generator>
-<lastBuildDate>Mon, 05 Jan 2026 12:00:00 GMT</lastBuildDate>
+<lastBuildDate>Tue, 06 Jan 2026 12:00:00 GMT</lastBuildDate>
 <atom:link href="https://bspfi.github.io/feed.xml" rel="self" type="application/rss+xml"/>
 <language><![CDATA[ en ]]></language>
 <item>
@@ -57,6 +57,15 @@
 <dc:creator><![CDATA[ bspfi.github.io ]]></dc:creator>
 <pubDate>Mon, 05 Jan 2026 12:00:00 GMT</pubDate>
 <media:content medium="image" url="https://bspfi.github.io/img/post5.png"/>
+</item>
+<item>
+<title><![CDATA[ Post 6 ]]></title>
+<description><![CDATA[ <div><img src="https://bspfi.github.io/img/post6.png" style="width: 100%;" /><div>This is post 6.</div></div> ]]></description>
+<link>https://bspfi.github.io/post-6</link>
+<guid isPermaLink="false">86e3a9bc1a783be70353a4ce40dd26d7</guid>
+<dc:creator><![CDATA[ bspfi.github.io ]]></dc:creator>
+<pubDate>Tue, 06 Jan 2026 12:00:00 GMT</pubDate>
+<media:content medium="image" url="https://bspfi.github.io/img/post6.png"/>
 </item>
 </channel>
 </rss>
