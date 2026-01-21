@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diffy</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='white'/><text x='50%' y='46%' dominant-baseline='central' text-anchor='middle' font-family='system-ui' font-weight='bold' font-size='20' fill='black'>D</text></svg>">
+  <script src="https://cdn.jsdelivr.net/npm/diff@5.1.0/dist/diff.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #1e1e1e; color: #d4d4d4; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+    
+    header { padding: 8px 16px; background: #252526; border-bottom: 1px solid #3c3c3c; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    header svg { width: 20px; height: 20px; }
+    header h1 { font-size: 14px; font-weight: 500; color: #ccc; }
+    .header-spacer { flex: 1; }
+    .shortcut-hint { font-size: 11px; color: #666; }
+    .shortcut-hint kbd { background: #333; padding: 2px 6px; border-radius: 3px; font-family: system-ui; }
+    
+    .main { flex: 1; display: flex; min-height: 0; }
+    
+    /* Sidebar */
+    .sidebar { width: 280px; background: #252526; border-right: 1px solid #3c3c3c; display: flex; flex-direction: column; flex-shrink: 0; transition: margin-left 0.2s ease, opacity 0.2s ease; }
+    .sidebar.hidden { margin-left: -280px; opacity: 0; pointer-events: none; }
+    .sidebar-header { padding: 12px 16px; font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #3c3c3c; }
+    .search-box { padding: 8px 12px; border-bottom: 1px solid #3c3c3c; }
+    .search-box input { width: 100%; padding: 6px 10px; background: #1e1e1e; border: 1px solid #3c3c3c; border-radius: 4px; color: #d4d4d4; font-size: 12px; outline: none; }
+    .search-box input:focus { border-color: #555; }
+    .search-box input::placeholder { color: #666; }
+    .sidebar-content { flex: 1; overflow-y: auto; }
+    .empty-state { padding: 24px 16px; text-align: center; color: #666; font-size: 12px; }
+    
+    .history-item { padding: 12px 16px; border-bottom: 1px solid #333; cursor: pointer; transition: background 0.1s; }
+    .history-item:hover { background: #2a2a2a; }
+    .history-item.active, .history-item.selected { background: #37373d; border-left: 2px solid #0e639c; }
+    .history-time { font-size: 11px; color: #888; margin-bottom: 6px; }
+    .history-preview { font-size: 11px; color: #999; font-family: Consolas, monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .history-preview .add { color: #7ee787; }
+    .history-preview .del { color: #ffa198; }
+    .history-stats { font-size: 10px; color: #666; margin-top: 4px; }
+    .history-delete { float: right; color: #666; font-size: 14px; padding: 2px 6px; border-radius: 3px; }
+    .history-delete:hover { background: #3a2020; color: #f88; }
+    
+    .container { flex: 1; display: flex; min-height: 0; }
+    .panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .panel:first-child { border-right: 1px solid #3c3c3c; }
+    .panel-header { padding: 6px 12px; font-size: 11px; color: #888; background: #252526; border-bottom: 1px solid #3c3c3c; text-transform: uppercase; flex-shrink: 0; }
+    
+    .editor { flex: 1; position: relative; overflow: hidden; }
+    .backdrop, textarea {
+      position: absolute; inset: 0;
+      font: 13px/20px Consolas, Monaco, 'Courier New', monospace;
+      padding: 8px 12px;
+      margin: 0; border: 0;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      overflow-y: auto;
+      tab-size: 2;
+    }
+    .backdrop { background: #1e1e1e; pointer-events: none; z-index: 1; color: #d4d4d4; }
+    textarea { background: transparent; color: transparent; caret-color: #fff; resize: none; outline: none; z-index: 2; }
+    textarea::selection { background: rgba(51, 144, 255, 0.4); }
+    textarea::placeholder { color: #555; }
+    
+    /* Line highlighting */
+    .del { background: #4d2020; color: #ffcccc; display: inline-block; min-width: 100%; }
+    .add { background: #204d20; color: #ccffcc; display: inline-block; min-width: 100%; }
+    .char-del { background: #802020; border-radius: 2px; }
+    .char-add { background: #208020; border-radius: 2px; }
+    
+    /* Modern sleek scrollbars */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #5a5a5a; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #6a6a6a; }
+    ::-webkit-scrollbar-corner { background: transparent; }
+    * { scrollbar-width: thin; scrollbar-color: #5a5a5a transparent; }
+  </style>
+</head>
+<body>
+  <header>
+    <svg viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="white"/><text x="50%" y="46%" dominant-baseline="central" text-anchor="middle" font-family="system-ui" font-weight="bold" font-size="20" fill="black">D</text></svg>
+    <h1>Diffy</h1>
+    <div class="header-spacer"></div>
+    <div class="shortcut-hint"><kbd>Cmd+B</kbd> sidebar &nbsp; <kbd>Cmd+K</kbd> save &nbsp; <kbd>Cmd+Shift+F</kbd> search</div>
+  </header>
+  
+  <div class="main">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <span>History</span>
+      </div>
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Search history..." spellcheck="false">
+      </div>
+      <div class="sidebar-content" id="historyList">
+        <div class="empty-state">No saved diffys yet.<br>Press Cmd+K to save.</div>
+      </div>
+    </aside>
+    
+    <div class="container">
+      <div class="panel">
+        <div class="panel-header">Before</div>
+        <div class="editor">
+          <div class="backdrop" id="leftBackdrop"></div>
+          <textarea id="original" spellcheck="false" placeholder="Paste before text..."></textarea>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">After</div>
+        <div class="editor">
+          <div class="backdrop" id="rightBackdrop"></div>
+          <textarea id="changed" spellcheck="false" placeholder="Paste after text..."></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const original = document.getElementById('original');
+    const changed = document.getElementById('changed');
+    const leftBackdrop = document.getElementById('leftBackdrop');
+    const rightBackdrop = document.getElementById('rightBackdrop');
+    const sidebar = document.getElementById('sidebar');
+    const historyList = document.getElementById('historyList');
+    const searchInput = document.getElementById('searchInput');
+
+    // Focus on before textarea on load
+    original.focus();
+
+    // Search history
+    let selectedIndex = -1;
+    
+    searchInput.addEventListener('input', () => {
+      selectedIndex = -1;
+      renderHistory();
+    });
+
+    // Arrow navigation in search
+    searchInput.addEventListener('keydown', (e) => {
+      const items = historyList.querySelectorAll('.history-item');
+      if (!items.length) return;
+      
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+        updateSelection(items);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        selectedIndex = Math.max(selectedIndex - 1, 0);
+        updateSelection(items);
+      } else if (e.key === 'Enter' && selectedIndex >= 0) {
+        e.preventDefault();
+        items[selectedIndex].click();
+        searchInput.blur();
+        selectedIndex = -1;
+        updateSelection(items);
+      } else if (e.key === 'Escape') {
+        searchInput.blur();
+        selectedIndex = -1;
+        updateSelection(items);
+      }
+    });
+
+    function updateSelection(items) {
+      items.forEach((item, i) => {
+        item.classList.toggle('selected', i === selectedIndex);
+        if (i === selectedIndex) item.scrollIntoView({ block: 'nearest' });
+      });
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
+        e.preventDefault();
+        sidebar.classList.toggle('hidden');
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        saveDiffy();
+      }
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'f') {
+        e.preventDefault();
+        sidebar.classList.remove('hidden');
+        searchInput.focus();
+        searchInput.select();
+      }
+    });
+
+    // Load history from localStorage
+    function getHistory() {
+      try {
+        return JSON.parse(localStorage.getItem('diffy-history') || '[]');
+      } catch {
+        return [];
+      }
+    }
+
+    function saveHistory(history) {
+      localStorage.setItem('diffy-history', JSON.stringify(history));
+    }
+
+    function saveDiffy() {
+      const before = original.value;
+      const after = changed.value;
+      
+      if (!before && !after) return;
+      
+      const history = getHistory();
+      const entry = {
+        id: Date.now(),
+        timestamp: new Date().toISOString(),
+        before,
+        after
+      };
+      
+      history.unshift(entry);
+      // Keep only last 50
+      if (history.length > 50) history.pop();
+      
+      saveHistory(history);
+      renderHistory();
+    }
+
+    function loadDiffy(id) {
+      const history = getHistory();
+      const entry = history.find(h => h.id === id);
+      if (entry) {
+        original.value = entry.before;
+        changed.value = entry.after;
+        render();
+      }
+    }
+
+    function deleteDiffy(id, e) {
+      e.stopPropagation();
+      const history = getHistory().filter(h => h.id !== id);
+      saveHistory(history);
+      renderHistory();
+    }
+
+    function formatTime(iso) {
+      const d = new Date(iso);
+      const now = new Date();
+      const diff = now - d;
+      
+      if (diff < 60000) return 'Just now';
+      if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+      if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+      if (diff < 604800000) return `${Math.floor(diff / 86400000)}d ago`;
+      
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    function getPreview(before, after) {
+      const oldLines = before.split('\n');
+      const newLines = after.split('\n');
+      const diff = Diff.diffArrays(oldLines, newLines);
+      
+      let added = 0, removed = 0;
+      let preview = '';
+      
+      diff.forEach(part => {
+        if (part.added) {
+          added += part.value.length;
+          if (!preview && part.value[0]) preview = '+' + part.value[0].slice(0, 30);
+        } else if (part.removed) {
+          removed += part.value.length;
+          if (!preview && part.value[0]) preview = '-' + part.value[0].slice(0, 30);
+        }
+      });
+      
+      return { added, removed, preview: preview || before.slice(0, 30) || after.slice(0, 30) || '(empty)' };
+    }
+
+    function renderHistory() {
+      const history = getHistory();
+      const query = searchInput.value.toLowerCase().trim();
+      
+      if (history.length === 0) {
+        historyList.innerHTML = '<div class="empty-state">No saved diffys yet.<br>Press Cmd+K to save.</div>';
+        return;
+      }
+      
+      // Filter by search query
+      const filtered = query 
+        ? history.filter(h => h.before.toLowerCase().includes(query) || h.after.toLowerCase().includes(query))
+        : history;
+      
+      if (filtered.length === 0) {
+        historyList.innerHTML = '<div class="empty-state">No matches found.</div>';
+        return;
+      }
+      
+      historyList.innerHTML = filtered.map(entry => {
+        const { added, removed, preview } = getPreview(entry.before, entry.after);
+        const previewClass = preview.startsWith('+') ? 'add' : preview.startsWith('-') ? 'del' : '';
+        
+        return `
+          <div class="history-item" onclick="loadDiffy(${entry.id})">
+            <span class="history-delete" onclick="deleteDiffy(${entry.id}, event)">&times;</span>
+            <div class="history-time">${formatTime(entry.timestamp)}</div>
+            <div class="history-preview"><span class="${previewClass}">${escapeHtml(preview)}</span></div>
+            <div class="history-stats">+${added} -${removed} lines</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    original.addEventListener('input', render);
+    changed.addEventListener('input', render);
+    original.addEventListener('scroll', () => leftBackdrop.scrollTop = original.scrollTop);
+    changed.addEventListener('scroll', () => rightBackdrop.scrollTop = changed.scrollTop);
+
+    function render() {
+      const oldText = original.value;
+      const newText = changed.value;
+      const oldLines = oldText.split('\n');
+      const newLines = newText.split('\n');
+      
+      const diff = Diff.diffArrays(oldLines, newLines);
+      
+      const oldLineStatus = [];
+      const newLineStatus = [];
+      const charDiffs = new Map();
+      
+      let oldIdx = 0, newIdx = 0, i = 0;
+      
+      while (i < diff.length) {
+        const part = diff[i];
+        const next = diff[i + 1];
+        
+        if (part.removed && next && next.added) {
+          const oldPart = part.value;
+          const newPart = next.value;
+          
+          for (let j = 0; j < oldPart.length; j++) {
+            const newJ = j < newPart.length ? j : -1;
+            if (newJ >= 0) {
+              oldLineStatus[oldIdx + j] = 'mod';
+              newLineStatus[newIdx + j] = 'mod';
+              
+              const cd = Diff.diffChars(oldPart[j], newPart[j]);
+              let oldH = '', newH = '';
+              cd.forEach(c => {
+                const t = esc(c.value);
+                if (c.added) newH += `<span class="char-add">${t}</span>`;
+                else if (c.removed) oldH += `<span class="char-del">${t}</span>`;
+                else { oldH += t; newH += t; }
+              });
+              charDiffs.set('old-' + (oldIdx + j), oldH);
+              charDiffs.set('new-' + (newIdx + j), newH);
+            } else {
+              oldLineStatus[oldIdx + j] = 'del';
+            }
+          }
+          for (let j = oldPart.length; j < newPart.length; j++) {
+            newLineStatus[newIdx + j] = 'add';
+          }
+          
+          oldIdx += oldPart.length;
+          newIdx += newPart.length;
+          i += 2;
+        } else if (part.removed) {
+          for (let j = 0; j < part.value.length; j++) {
+            oldLineStatus[oldIdx + j] = 'del';
+          }
+          oldIdx += part.value.length;
+          i++;
+        } else if (part.added) {
+          for (let j = 0; j < part.value.length; j++) {
+            newLineStatus[newIdx + j] = 'add';
+          }
+          newIdx += part.value.length;
+          i++;
+        } else {
+          oldIdx += part.value.length;
+          newIdx += part.value.length;
+          i++;
+        }
+      }
+      
+      // Render left
+      let leftHtml = '';
+      oldLines.forEach((line, idx) => {
+        const status = oldLineStatus[idx];
+        const charHtml = charDiffs.get('old-' + idx);
+        const content = line === '' ? '\u200B' : esc(line);
+        
+        if (charHtml) {
+          leftHtml += `<span class="del">${charHtml || '\u200B'}</span>\n`;
+        } else if (status === 'del') {
+          leftHtml += `<span class="del">${content}</span>\n`;
+        } else {
+          leftHtml += content + '\n';
+        }
+      });
+      
+      // Render right
+      let rightHtml = '';
+      newLines.forEach((line, idx) => {
+        const status = newLineStatus[idx];
+        const charHtml = charDiffs.get('new-' + idx);
+        const content = line === '' ? '\u200B' : esc(line);
+        
+        if (charHtml) {
+          rightHtml += `<span class="add">${charHtml || '\u200B'}</span>\n`;
+        } else if (status === 'add') {
+          rightHtml += `<span class="add">${content}</span>\n`;
+        } else {
+          rightHtml += content + '\n';
+        }
+      });
+      
+      leftBackdrop.innerHTML = leftHtml;
+      rightBackdrop.innerHTML = rightHtml;
+    }
+
+    function esc(s) {
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // Initial render
+    render();
+    renderHistory();
+  </script>
+</body>
+</html>
